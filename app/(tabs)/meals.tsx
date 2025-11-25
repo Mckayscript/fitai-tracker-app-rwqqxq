@@ -1,28 +1,79 @@
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image } from 'react-native';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { FoodConfirmationModal } from '@/components/FoodConfirmationModal';
+import { useFoodAnalysis, type FoodItem } from '@/hooks/useFoodAnalysis';
+import { supabase } from '@/app/integrations/supabase/client';
 import * as ImagePicker from 'expo-image-picker';
 
-interface Meal {
+interface MealEntry {
   id: string;
-  name: string;
+  food_name: string;
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
-  time: string;
+  portion_size_grams?: number;
+  image_url?: string;
+  created_at: string;
 }
 
 export default function MealsScreen() {
-  const [meals, setMeals] = useState<Meal[]>([]);
+  const [meals, setMeals] = useState<MealEntry[]>([]);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [mealName, setMealName] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [currentImageUri, setCurrentImageUri] = useState('');
+  const [analyzedFoods, setAnalyzedFoods] = useState<FoodItem[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  const { analyzeFood, loading: analyzing, error: analysisError } = useFoodAnalysis();
+
+  useEffect(() => {
+    checkAuth();
+    loadMeals();
+  }, []);
+
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUserId(user?.id || null);
+  };
+
+  const loadMeals = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('No user logged in');
+        return;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('meal_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('created_at', today.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading meals:', error);
+        return;
+      }
+
+      setMeals(data || []);
+    } catch (err) {
+      console.error('Error in loadMeals:', err);
+    }
+  };
 
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -31,6 +82,43 @@ export default function MealsScreen() {
       return false;
     }
     return true;
+  };
+
+  const uploadImageToStorage = async (imageUri: string): Promise<string | null> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      
+      const fileExt = imageUri.split('.').pop() || 'jpg';
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('meal-images')
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        return null;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('meal-images')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (err) {
+      console.error('Error uploading image:', err);
+      return null;
+    }
   };
 
   const takeMealPhoto = async () => {
@@ -44,12 +132,8 @@ export default function MealsScreen() {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
-      Alert.alert(
-        'AI Feature',
-        'AI food recognition is a premium feature. This will analyze your photo and estimate calories and macros. For now, please use manual entry.',
-        [{ text: 'OK' }]
-      );
+    if (!result.canceled && result.assets[0]) {
+      await handleImageAnalysis(result.assets[0].uri);
     }
   };
 
@@ -61,39 +145,124 @@ export default function MealsScreen() {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets[0]) {
+      await handleImageAnalysis(result.assets[0].uri);
+    }
+  };
+
+  const handleImageAnalysis = async (imageUri: string) => {
+    if (!userId) {
+      Alert.alert('Authentication Required', 'Please log in to use AI food recognition.');
+      return;
+    }
+
+    setCurrentImageUri(imageUri);
+    
+    const analysisResult = await analyzeFood(imageUri);
+    
+    if (analysisResult && analysisResult.foods.length > 0) {
+      setAnalyzedFoods(analysisResult.foods);
+      setShowConfirmation(true);
+    } else {
       Alert.alert(
-        'AI Feature',
-        'AI food recognition is a premium feature. This will analyze your photo and estimate calories and macros. For now, please use manual entry.',
+        'Analysis Failed',
+        analysisError || 'Could not analyze the image. Please try again or use manual entry.',
         [{ text: 'OK' }]
       );
     }
   };
 
-  const addManualMeal = () => {
+  const handleConfirmMeal = async (foods: FoodItem[]) => {
+    setShowConfirmation(false);
+    setLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Error', 'You must be logged in to save meals.');
+        setLoading(false);
+        return;
+      }
+
+      const imageUrl = await uploadImageToStorage(currentImageUri);
+
+      const mealEntries = foods.map(food => ({
+        user_id: user.id,
+        food_name: food.name,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+        portion_size_grams: food.portion_size_grams,
+        image_url: imageUrl,
+      }));
+
+      const { error } = await supabase
+        .from('meal_entries')
+        .insert(mealEntries);
+
+      if (error) {
+        console.error('Error saving meal:', error);
+        Alert.alert('Error', 'Failed to save meal. Please try again.');
+      } else {
+        Alert.alert('Success', 'Meal logged successfully!');
+        await loadMeals();
+      }
+    } catch (err) {
+      console.error('Error in handleConfirmMeal:', err);
+      Alert.alert('Error', 'An unexpected error occurred.');
+    } finally {
+      setLoading(false);
+      setCurrentImageUri('');
+      setAnalyzedFoods([]);
+    }
+  };
+
+  const addManualMeal = async () => {
     if (!mealName || !calories) {
       Alert.alert('Missing Information', 'Please enter at least meal name and calories.');
       return;
     }
 
-    const newMeal: Meal = {
-      id: Date.now().toString(),
-      name: mealName,
-      calories: parseInt(calories) || 0,
-      protein: parseInt(protein) || 0,
-      carbs: parseInt(carbs) || 0,
-      fat: parseInt(fat) || 0,
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-    };
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to save meals.');
+      return;
+    }
 
-    setMeals([newMeal, ...meals]);
-    setMealName('');
-    setCalories('');
-    setProtein('');
-    setCarbs('');
-    setFat('');
-    setShowManualEntry(false);
-    Alert.alert('Success', 'Meal logged successfully!');
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('meal_entries')
+        .insert({
+          user_id: user.id,
+          food_name: mealName,
+          calories: parseInt(calories) || 0,
+          protein: parseFloat(protein) || 0,
+          carbs: parseFloat(carbs) || 0,
+          fat: parseFloat(fat) || 0,
+        });
+
+      if (error) {
+        console.error('Error saving meal:', error);
+        Alert.alert('Error', 'Failed to save meal. Please try again.');
+      } else {
+        setMealName('');
+        setCalories('');
+        setProtein('');
+        setCarbs('');
+        setFat('');
+        setShowManualEntry(false);
+        Alert.alert('Success', 'Meal logged successfully!');
+        await loadMeals();
+      }
+    } catch (err) {
+      console.error('Error in addManualMeal:', err);
+      Alert.alert('Error', 'An unexpected error occurred.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
@@ -110,7 +279,7 @@ export default function MealsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Meal Tracker</Text>
-          <Text style={styles.subtitle}>Log your meals and track nutrition</Text>
+          <Text style={styles.subtitle}>AI-powered food recognition</Text>
         </View>
 
         {/* Daily Summary */}
@@ -122,15 +291,15 @@ export default function MealsScreen() {
               <Text style={styles.summaryLabel}>Calories</Text>
             </View>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{totalProtein}g</Text>
+              <Text style={styles.summaryValue}>{totalProtein.toFixed(1)}g</Text>
               <Text style={styles.summaryLabel}>Protein</Text>
             </View>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{totalCarbs}g</Text>
+              <Text style={styles.summaryValue}>{totalCarbs.toFixed(1)}g</Text>
               <Text style={styles.summaryLabel}>Carbs</Text>
             </View>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{totalFat}g</Text>
+              <Text style={styles.summaryValue}>{totalFat.toFixed(1)}g</Text>
               <Text style={styles.summaryLabel}>Fat</Text>
             </View>
           </View>
@@ -140,17 +309,31 @@ export default function MealsScreen() {
         <View style={commonStyles.card}>
           <Text style={styles.cardTitle}>Log a Meal</Text>
           
-          <TouchableOpacity style={styles.primaryButton} onPress={takeMealPhoto}>
-            <IconSymbol 
-              ios_icon_name="camera.fill" 
-              android_material_icon_name="camera-alt"
-              size={24}
-              color={colors.card}
-            />
-            <Text style={styles.primaryButtonText}>Take Photo (AI Recognition)</Text>
+          <TouchableOpacity 
+            style={styles.primaryButton} 
+            onPress={takeMealPhoto}
+            disabled={analyzing || loading}
+          >
+            {analyzing ? (
+              <ActivityIndicator color={colors.card} />
+            ) : (
+              <>
+                <IconSymbol 
+                  ios_icon_name="camera.fill" 
+                  android_material_icon_name="camera-alt"
+                  size={24}
+                  color={colors.card}
+                />
+                <Text style={styles.primaryButtonText}>Take Photo (AI Recognition)</Text>
+              </>
+            )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryButton} onPress={pickMealPhoto}>
+          <TouchableOpacity 
+            style={styles.secondaryButton} 
+            onPress={pickMealPhoto}
+            disabled={analyzing || loading}
+          >
             <IconSymbol 
               ios_icon_name="photo.fill" 
               android_material_icon_name="photo-library"
@@ -163,6 +346,7 @@ export default function MealsScreen() {
           <TouchableOpacity 
             style={styles.secondaryButton} 
             onPress={() => setShowManualEntry(!showManualEntry)}
+            disabled={loading}
           >
             <IconSymbol 
               ios_icon_name="pencil" 
@@ -223,8 +407,16 @@ export default function MealsScreen() {
               />
             </View>
 
-            <TouchableOpacity style={styles.addButton} onPress={addManualMeal}>
-              <Text style={styles.addButtonText}>Add Meal</Text>
+            <TouchableOpacity 
+              style={styles.addButton} 
+              onPress={addManualMeal}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.card} />
+              ) : (
+                <Text style={styles.addButtonText}>Add Meal</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}
@@ -247,37 +439,85 @@ export default function MealsScreen() {
           ) : (
             meals.map((meal) => (
               <View key={meal.id} style={styles.mealItem}>
-                <View style={styles.mealHeader}>
-                  <Text style={styles.mealName}>{meal.name}</Text>
-                  <Text style={styles.mealTime}>{meal.time}</Text>
-                </View>
-                <View style={styles.mealMacros}>
-                  <Text style={styles.mealCalories}>{meal.calories} cal</Text>
-                  <Text style={styles.mealMacro}>P: {meal.protein}g</Text>
-                  <Text style={styles.mealMacro}>C: {meal.carbs}g</Text>
-                  <Text style={styles.mealMacro}>F: {meal.fat}g</Text>
+                {meal.image_url && (
+                  <Image 
+                    source={{ uri: meal.image_url }} 
+                    style={styles.mealImage}
+                    resizeMode="cover"
+                  />
+                )}
+                <View style={styles.mealContent}>
+                  <View style={styles.mealHeader}>
+                    <Text style={styles.mealName}>{meal.food_name}</Text>
+                    <Text style={styles.mealTime}>
+                      {new Date(meal.created_at).toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </Text>
+                  </View>
+                  <View style={styles.mealMacros}>
+                    <Text style={styles.mealCalories}>{meal.calories} cal</Text>
+                    <Text style={styles.mealMacro}>P: {meal.protein.toFixed(1)}g</Text>
+                    <Text style={styles.mealMacro}>C: {meal.carbs.toFixed(1)}g</Text>
+                    <Text style={styles.mealMacro}>F: {meal.fat.toFixed(1)}g</Text>
+                  </View>
+                  {meal.portion_size_grams && (
+                    <Text style={styles.portionText}>
+                      Portion: {meal.portion_size_grams}g
+                    </Text>
+                  )}
                 </View>
               </View>
             ))
           )}
         </View>
 
-        {/* Premium Feature Banner */}
-        <View style={[commonStyles.card, styles.premiumBanner]}>
+        {/* Disclaimer */}
+        <View style={[commonStyles.card, styles.disclaimerCard]}>
           <IconSymbol 
-            ios_icon_name="star.fill" 
-            android_material_icon_name="star"
-            size={32}
-            color={colors.highlight}
+            ios_icon_name="info.circle.fill" 
+            android_material_icon_name="info"
+            size={24}
+            color={colors.primary}
           />
-          <View style={styles.premiumContent}>
-            <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
-            <Text style={styles.premiumText}>
-              Get AI-powered food recognition, unlimited meal logging, and personalized nutrition recommendations
+          <View style={styles.disclaimerContent}>
+            <Text style={styles.disclaimerTitle}>Medical Disclaimer</Text>
+            <Text style={styles.disclaimerText}>
+              Nutritional values are AI-generated estimates and may not be 100% accurate. 
+              This app is not a substitute for professional medical or nutritional advice. 
+              Consult with a healthcare provider for personalized dietary guidance.
             </Text>
           </View>
         </View>
       </ScrollView>
+
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <FoodConfirmationModal
+          visible={showConfirmation}
+          imageUri={currentImageUri}
+          foods={analyzedFoods}
+          onConfirm={handleConfirmMeal}
+          onCancel={() => {
+            setShowConfirmation(false);
+            setCurrentImageUri('');
+            setAnalyzedFoods([]);
+          }}
+        />
+      )}
+
+      {/* Loading Overlay */}
+      {(analyzing || loading) && !showConfirmation && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>
+              {analyzing ? 'Analyzing your food...' : 'Saving meal...'}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -332,6 +572,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 8,
     marginBottom: 12,
+    minHeight: 50,
   },
   primaryButtonText: {
     color: colors.card,
@@ -381,6 +622,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
+    minHeight: 50,
+    justifyContent: 'center',
   },
   addButtonText: {
     color: colors.card,
@@ -403,9 +646,19 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   mealItem: {
+    flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  mealImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  mealContent: {
+    flex: 1,
   },
   mealHeader: {
     flexDirection: 'row',
@@ -416,6 +669,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
+    flex: 1,
   },
   mealTime: {
     fontSize: 14,
@@ -436,24 +690,50 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginRight: 12,
   },
-  premiumBanner: {
-    backgroundColor: colors.secondary,
+  portionText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  disclaimerCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
-  premiumContent: {
+  disclaimerContent: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 12,
   },
-  premiumTitle: {
-    fontSize: 16,
+  disclaimerTitle: {
+    fontSize: 14,
     fontWeight: '600',
-    color: colors.card,
+    color: colors.text,
     marginBottom: 4,
   },
-  premiumText: {
-    fontSize: 14,
-    color: colors.card,
-    lineHeight: 20,
+  disclaimerText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingCard: {
+    backgroundColor: colors.card,
+    padding: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.text,
+    fontWeight: '600',
   },
 });
