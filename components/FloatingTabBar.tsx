@@ -40,8 +40,8 @@ interface FloatingTabBarProps {
 
 export default function FloatingTabBar({
   tabs,
-  containerWidth = screenWidth / 2.5,
-  borderRadius = 35,
+  containerWidth = screenWidth * 0.92, // Much wider - 92% of screen width
+  borderRadius = 40,
   bottomMargin
 }: FloatingTabBarProps) {
   const router = useRouter();
@@ -99,12 +99,10 @@ export default function FloatingTabBar({
     router.push(route);
   };
 
-  // Remove unnecessary tabBarStyle animation to prevent flickering
-
   const tabWidthPercent = ((100 / tabs.length) - 1).toFixed(2);
 
   const indicatorStyle = useAnimatedStyle(() => {
-    const tabWidth = (containerWidth - 8) / tabs.length; // Account for container padding (4px on each side)
+    const tabWidth = (containerWidth - 16) / tabs.length; // Account for container padding
     return {
       transform: [
         {
@@ -161,7 +159,7 @@ export default function FloatingTabBar({
         styles.container,
         {
           width: containerWidth,
-          marginBottom: bottomMargin ?? 20
+          marginBottom: bottomMargin ?? 24 // More bottom margin for dedicated space
         }
       ]}>
         <BlurView
@@ -185,7 +183,7 @@ export default function FloatingTabBar({
                     <IconSymbol
                       android_material_icon_name={tab.icon}
                       ios_icon_name={tab.icon}
-                      size={28}
+                      size={36} // Increased from 28 to 36
                       color={isActive ? theme.colors.primary : '#757575'}
                     />
                     <Text
@@ -216,54 +214,58 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    alignItems: 'center', // Center the content
+    alignItems: 'center',
   },
   container: {
-    marginHorizontal: 20,
+    marginHorizontal: 16, // Reduced horizontal margin since container is wider
     alignSelf: 'center',
-    // width and marginBottom handled dynamically via props
+    // Add shadow for more dedicated space feel
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   blurContainer: {
     overflow: 'hidden',
-    // borderRadius and other styling applied dynamically
   },
   background: {
     ...StyleSheet.absoluteFillObject,
-    // Dynamic styling applied in component
   },
   indicator: {
     position: 'absolute',
-    top: 4,
-    left: 2,
-    bottom: 4,
-    borderRadius: 27,
+    top: 6,
+    left: 4,
+    bottom: 6,
+    borderRadius: 32,
     width: `${(100 / 2) - 1}%`, // Default for 2 tabs, will be overridden by dynamic styles
-    // Dynamic styling applied in component
   },
   tabsContainer: {
     flexDirection: 'row',
-    height: 75,
+    height: 90, // Increased from 75 to 90 for more space
     alignItems: 'center',
-    paddingHorizontal: 6,
-    gap: 8,
+    paddingHorizontal: 8,
+    gap: 12, // Increased gap between tabs
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
+    paddingVertical: 12, // Increased padding
+    paddingHorizontal: 6,
   },
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 6, // Increased gap between icon and label
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 13, // Increased from 11 to 13
     fontWeight: '500',
     marginTop: 2,
     textAlign: 'center',
-    // Dynamic styling applied in component
   },
 });

@@ -180,7 +180,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 48,
-    paddingBottom: 100,
+    paddingBottom: 140, // Increased from 100 to 140 to accommodate larger tab bar
   },
   header: {
     paddingHorizontal: 16,
