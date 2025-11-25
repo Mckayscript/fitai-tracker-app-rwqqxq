@@ -21,7 +21,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Daily Summary Card */}
-        <View style={[commonStyles.card, styles.summaryCard]}>
+        <View style={commonStyles.card}>
           <Text style={styles.cardTitle}>Today&apos;s Summary</Text>
           
           <View style={styles.statsRow}>
@@ -196,9 +196,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
   },
-  summaryCard: {
-    backgroundColor: colors.primary,
-  },
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -215,12 +212,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.card,
+    color: '#000000',
     marginTop: 8,
   },
   statLabel: {
     fontSize: 14,
-    color: colors.card,
+    color: '#000000',
     marginTop: 4,
   },
   macroItem: {
