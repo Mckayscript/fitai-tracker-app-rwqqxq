@@ -40,7 +40,7 @@ interface FloatingTabBarProps {
 
 export default function FloatingTabBar({
   tabs,
-  containerWidth = screenWidth * 0.92,
+  containerWidth = screenWidth * 0.92, // Much wider - 92% of screen width
   borderRadius = 40,
   bottomMargin
 }: FloatingTabBarProps) {
@@ -49,21 +49,29 @@ export default function FloatingTabBar({
   const theme = useTheme();
   const animatedValue = useSharedValue(0);
 
-  // Improved active tab detection
+  // Improved active tab detection with better path matching
   const activeTabIndex = React.useMemo(() => {
+    // Find the best matching tab based on the current pathname
     let bestMatch = -1;
     let bestMatchScore = 0;
 
     tabs.forEach((tab, index) => {
       let score = 0;
 
+      // Exact route match gets highest score
       if (pathname === tab.route) {
         score = 100;
-      } else if (pathname.startsWith(tab.route as string)) {
+      }
+      // Check if pathname starts with tab route (for nested routes)
+      else if (pathname.startsWith(tab.route as string)) {
         score = 80;
-      } else if (pathname.includes(tab.name)) {
+      }
+      // Check if pathname contains the tab name
+      else if (pathname.includes(tab.name)) {
         score = 60;
-      } else if (tab.route.includes('/(tabs)/') && pathname.includes(tab.route.split('/(tabs)/')[1])) {
+      }
+      // Check for partial matches in the route
+      else if (tab.route.includes('/(tabs)/') && pathname.includes(tab.route.split('/(tabs)/')[1])) {
         score = 40;
       }
 
@@ -73,6 +81,7 @@ export default function FloatingTabBar({
       }
     });
 
+    // Default to first tab if no match found
     return bestMatch >= 0 ? bestMatch : 0;
   }, [pathname, tabs]);
 
@@ -87,18 +96,13 @@ export default function FloatingTabBar({
   }, [activeTabIndex, animatedValue]);
 
   const handleTabPress = (route: Href) => {
-    console.log('User tapped tab:', route);
-    try {
-      router.push(route);
-    } catch (error) {
-      console.error('Navigation error:', error);
-    }
+    router.push(route);
   };
 
-  const tabWidthPercent = Math.max(10, ((100 / tabs.length) - 2));
+  const tabWidthPercent = ((100 / tabs.length) - 1).toFixed(2);
 
   const indicatorStyle = useAnimatedStyle(() => {
-    const tabWidth = (containerWidth - 16) / tabs.length;
+    const tabWidth = (containerWidth - 16) / tabs.length; // Account for container padding
     return {
       transform: [
         {
@@ -112,6 +116,7 @@ export default function FloatingTabBar({
     };
   });
 
+  // Dynamic styles based on theme
   const dynamicStyles = {
     blurContainer: {
       ...styles.blurContainer,
@@ -142,9 +147,9 @@ export default function FloatingTabBar({
     indicator: {
       ...styles.indicator,
       backgroundColor: theme.dark
-        ? 'rgba(255, 255, 255, 0.08)'
-        : 'rgba(0, 0, 0, 0.04)',
-      width: `${tabWidthPercent}%` as `${number}%`,
+        ? 'rgba(255, 255, 255, 0.08)' // Subtle white overlay in dark mode
+        : 'rgba(0, 0, 0, 0.04)', // Subtle black overlay in light mode
+      width: `${tabWidthPercent}%` as `${number}%`, // Dynamic width based on number of tabs
     },
   };
 
@@ -154,7 +159,7 @@ export default function FloatingTabBar({
         styles.container,
         {
           width: containerWidth,
-          marginBottom: bottomMargin ?? 24
+          marginBottom: bottomMargin ?? 24 // More bottom margin for dedicated space
         }
       ]}>
         <BlurView
@@ -168,31 +173,30 @@ export default function FloatingTabBar({
               const isActive = activeTabIndex === index;
 
               return (
-                <React.Fragment key={`tab-${index}-${tab.name}`}>
-                  <TouchableOpacity
-                    style={styles.tab}
-                    onPress={() => handleTabPress(tab.route)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.tabContent}>
-                      <IconSymbol
-                        android_material_icon_name={tab.icon}
-                        ios_icon_name={tab.icon}
-                        size={28}
-                        color={isActive ? theme.colors.primary : '#757575'}
-                      />
-                      <Text
-                        style={[
-                          styles.tabLabel,
-                          { color: theme.dark ? '#98989D' : '#8E8E93' },
-                          isActive && { color: theme.colors.primary, fontWeight: '600' },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {tab.label}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
+                <React.Fragment key={index}>
+                <TouchableOpacity
+                  style={styles.tab}
+                  onPress={() => handleTabPress(tab.route)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.tabContent}>
+                    <IconSymbol
+                      android_material_icon_name={tab.icon}
+                      ios_icon_name={tab.icon}
+                      size={36} // Increased from 28 to 36
+                      color={isActive ? theme.colors.primary : '#757575'}
+                    />
+                    <Text
+                      style={[
+                        styles.tabLabel,
+                        { color: theme.dark ? '#98989D' : '#8E8E93' },
+                        isActive && { color: theme.colors.primary, fontWeight: '600' },
+                      ]}
+                    >
+                      {tab.label}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
                 </React.Fragment>
               );
             })}
@@ -213,8 +217,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   container: {
-    marginHorizontal: 16,
+    marginHorizontal: 16, // Reduced horizontal margin since container is wider
     alignSelf: 'center',
+    // Add shadow for more dedicated space feel
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -236,28 +241,29 @@ const styles = StyleSheet.create({
     left: 4,
     bottom: 6,
     borderRadius: 32,
+    width: `${(100 / 2) - 1}%`, // Default for 2 tabs, will be overridden by dynamic styles
   },
   tabsContainer: {
     flexDirection: 'row',
-    height: 75,
+    height: 90, // Increased from 75 to 90 for more space
     alignItems: 'center',
     paddingHorizontal: 8,
-    gap: 4,
+    gap: 12, // Increased gap between tabs
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingVertical: 12, // Increased padding
+    paddingHorizontal: 6,
   },
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 6, // Increased gap between icon and label
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 13, // Increased from 11 to 13
     fontWeight: '500',
     marginTop: 2,
     textAlign: 'center',
