@@ -74,13 +74,6 @@ export default function TabLayout() {
             headerShown: false,
           }}
         />
-        <Tabs.Screen
-          name="testing-guide"
-          options={{
-            href: null, // Hide from tab bar
-            headerShown: false,
-          }}
-        />
       </Tabs>
     </>
   );
