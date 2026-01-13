@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { useWorkoutGeneration } from '@/hooks/useWorkoutGeneration';
+import { WorkoutRoutineModal } from '@/components/WorkoutRoutineModal';
 
 interface Workout {
   id: string;
@@ -21,13 +23,24 @@ const workoutTypes = [
   { name: 'Walking', icon: 'directions-walk', calories: 5 },
 ];
 
+const fitnessGoals = [
+  { name: 'Muscle Mass', icon: 'fitness-center', description: 'Build strength and size' },
+  { name: 'Weight Loss', icon: 'local-fire-department', description: 'Burn fat and calories' },
+  { name: 'Endurance', icon: 'directions-run', description: 'Improve stamina' },
+  { name: 'General Fitness', icon: 'favorite', description: 'Overall health' },
+];
+
 export default function WorkoutsScreen() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [selectedType, setSelectedType] = useState('');
   const [duration, setDuration] = useState('');
+  const [showRoutineModal, setShowRoutineModal] = useState(false);
+  
+  const { generateRoutine, loading, data, error } = useWorkoutGeneration();
 
   const addWorkout = () => {
+    console.log('User tapped Log Workout button');
     if (!selectedType || !duration) {
       Alert.alert('Missing Information', 'Please select workout type and duration.');
       return;
@@ -45,11 +58,24 @@ export default function WorkoutsScreen() {
       time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
     };
 
+    console.log('Logging workout:', newWorkout);
     setWorkouts([newWorkout, ...workouts]);
     setSelectedType('');
     setDuration('');
     setShowManualEntry(false);
     Alert.alert('Success', 'Workout logged successfully!');
+  };
+
+  const handleGenerateRoutine = async (goal: string) => {
+    console.log('User tapped Generate Routine for goal:', goal);
+    setShowRoutineModal(true);
+    
+    const result = await generateRoutine(goal, 'Intermediate', 4, 60);
+    
+    if (!result && error) {
+      Alert.alert('Error', 'Failed to generate workout routine. Please try again.');
+      setShowRoutineModal(false);
+    }
   };
 
   const totalDuration = workouts.reduce((sum, workout) => sum + workout.duration, 0);
@@ -64,7 +90,7 @@ export default function WorkoutsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Workout Tracker</Text>
-          <Text style={styles.subtitle}>Log your workouts and track progress</Text>
+          <Text style={styles.subtitle}>AI-powered personalized routines</Text>
         </View>
 
         {/* Daily Summary */}
@@ -104,6 +130,42 @@ export default function WorkoutsScreen() {
           </View>
         </View>
 
+        {/* AI Workout Routines */}
+        <View style={[commonStyles.card, styles.aiCard]}>
+          <View style={styles.aiHeader}>
+            <IconSymbol 
+              ios_icon_name="sparkles" 
+              android_material_icon_name="auto-awesome"
+              size={28}
+              color={colors.highlight}
+            />
+            <Text style={styles.cardTitle}>AI Workout Routines</Text>
+          </View>
+          <Text style={styles.aiDescription}>
+            Get a personalized workout plan based on your fitness goals
+          </Text>
+          
+          <View style={styles.goalsGrid}>
+            {fitnessGoals.map((goal) => (
+              <TouchableOpacity
+                key={goal.name}
+                style={styles.goalCard}
+                onPress={() => handleGenerateRoutine(goal.name)}
+                disabled={loading}
+              >
+                <IconSymbol 
+                  ios_icon_name="figure.run" 
+                  android_material_icon_name={goal.icon as any}
+                  size={32}
+                  color={colors.primary}
+                />
+                <Text style={styles.goalName}>{goal.name}</Text>
+                <Text style={styles.goalDescription}>{goal.description}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         {/* Quick Add Workouts */}
         <View style={commonStyles.card}>
           <Text style={styles.cardTitle}>Quick Add Workout</Text>
@@ -113,6 +175,7 @@ export default function WorkoutsScreen() {
                 key={workout.name}
                 style={styles.workoutTypeButton}
                 onPress={() => {
+                  console.log('User selected workout type:', workout.name);
                   setSelectedType(workout.name);
                   setShowManualEntry(true);
                 }}
@@ -204,23 +267,15 @@ export default function WorkoutsScreen() {
             ))
           )}
         </View>
-
-        {/* AI Recommendations */}
-        <View style={[commonStyles.card, styles.aiCard]}>
-          <View style={styles.aiHeader}>
-            <IconSymbol 
-              ios_icon_name="sparkles" 
-              android_material_icon_name="auto-awesome"
-              size={24}
-              color={colors.highlight}
-            />
-            <Text style={styles.cardTitle}>AI Workout Recommendations</Text>
-          </View>
-          <Text style={styles.aiText}>
-            Keep logging your workouts to get personalized AI recommendations based on your fitness goals and progress!
-          </Text>
-        </View>
       </ScrollView>
+
+      {/* Workout Routine Modal */}
+      <WorkoutRoutineModal
+        visible={showRoutineModal}
+        routine={data?.routine || null}
+        loading={loading}
+        onClose={() => setShowRoutineModal(false)}
+      />
     </View>
   );
 }
@@ -264,6 +319,46 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   summaryLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  aiCard: {
+    backgroundColor: colors.secondary,
+  },
+  aiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  aiDescription: {
+    fontSize: 14,
+    color: colors.card,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  goalsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  goalCard: {
+    width: '48%',
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  goalName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  goalDescription: {
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 4,
@@ -382,18 +477,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginLeft: 4,
-  },
-  aiCard: {
-    backgroundColor: colors.secondary,
-  },
-  aiHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  aiText: {
-    fontSize: 14,
-    color: colors.card,
-    lineHeight: 20,
   },
 });
