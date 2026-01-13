@@ -71,15 +71,26 @@ export default function WorkoutsScreen() {
     console.log('Loading daily workout checklist');
     try {
       const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase.functions.invoke('get-daily-checklist', {
-        body: { date: today },
+      
+      // Get project URL
+      const { data: { project_url } } = await supabase.functions.getProjectUrl();
+      
+      // Call Edge Function with date as query parameter
+      const response = await fetch(`${project_url}/functions/v1/get-daily-checklist?date=${today}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
-      if (error) {
-        console.error('Error loading checklist:', error);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error loading checklist:', errorText);
         setLoadingChecklist(false);
         return;
       }
+
+      const data = await response.json();
 
       if (data?.checklist) {
         console.log('Daily checklist loaded:', data.checklist);
@@ -174,7 +185,10 @@ export default function WorkoutsScreen() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error from Edge Function:', error);
+        throw new Error(error.message || 'Failed to generate workout routine');
+      }
 
       console.log('Workout routine generated with images');
       setGeneratedRoutine(data);
@@ -189,7 +203,10 @@ export default function WorkoutsScreen() {
       );
     } catch (error: any) {
       console.error('Failed to generate routine:', error);
-      Alert.alert('Error', error.message || 'Failed to generate workout routine. Please try again.');
+      Alert.alert(
+        'Error', 
+        error.message || 'Failed to generate workout routine. Please check your internet connection and try again.'
+      );
       setShowRoutineModal(false);
     } finally {
       setGeneratingRoutine(false);
