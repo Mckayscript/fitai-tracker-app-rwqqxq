@@ -1,53 +1,53 @@
 
-import FloatingTabBar from '@/components/FloatingTabBar';
+import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
 
 export default function TabLayout() {
-  const tabs = [
+  const tabs: TabBarItem[] = [
     {
       name: '(home)',
-      title: 'Home',
-      ios_icon_name: 'house.fill',
-      android_material_icon_name: 'home',
+      route: '/(tabs)/(home)' as any,
+      icon: 'home',
+      label: 'Home',
     },
     {
       name: 'meals',
-      title: 'Meals',
-      ios_icon_name: 'fork.knife',
-      android_material_icon_name: 'restaurant',
+      route: '/(tabs)/meals' as any,
+      icon: 'restaurant',
+      label: 'Meals',
     },
     {
       name: 'workouts',
-      title: 'Workouts',
-      ios_icon_name: 'figure.run',
-      android_material_icon_name: 'fitness-center',
+      route: '/(tabs)/workouts' as any,
+      icon: 'fitness-center',
+      label: 'Workouts',
     },
     {
       name: 'content-generator',
-      title: 'AI Content',
-      ios_icon_name: 'sparkles',
-      android_material_icon_name: 'auto-awesome',
+      route: '/(tabs)/content-generator' as any,
+      icon: 'auto-awesome',
+      label: 'AI Content',
     },
     {
       name: 'progress',
-      title: 'Progress',
-      ios_icon_name: 'chart.bar.fill',
-      android_material_icon_name: 'bar-chart',
+      route: '/(tabs)/progress' as any,
+      icon: 'bar-chart',
+      label: 'Progress',
     },
     {
       name: 'profile',
-      title: 'Profile',
-      ios_icon_name: 'person.fill',
-      android_material_icon_name: 'person',
+      route: '/(tabs)/profile' as any,
+      icon: 'person',
+      label: 'Profile',
     },
   ];
 
   return (
     <>
       <Tabs
-        tabBar={(props) => <FloatingTabBar {...props} tabs={tabs} />}
+        tabBar={() => <FloatingTabBar tabs={tabs} />}
         screenOptions={{
           headerShown: false,
         }}
