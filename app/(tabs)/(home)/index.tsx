@@ -8,6 +8,8 @@ import { useRouter } from 'expo-router';
 export default function HomeScreen() {
   const router = useRouter();
 
+  console.log('HomeScreen rendered');
+
   return (
     <View style={commonStyles.container}>
       <ScrollView 
@@ -101,7 +103,10 @@ export default function HomeScreen() {
           
           <TouchableOpacity 
             style={styles.actionButton}
-            onPress={() => router.push('/(tabs)/meals')}
+            onPress={() => {
+              console.log('User tapped Log Meal with Photo');
+              router.push('/(tabs)/meals');
+            }}
           >
             <IconSymbol 
               ios_icon_name="camera.fill" 
@@ -120,7 +125,10 @@ export default function HomeScreen() {
 
           <TouchableOpacity 
             style={styles.actionButton}
-            onPress={() => router.push('/(tabs)/workouts')}
+            onPress={() => {
+              console.log('User tapped Log Workout');
+              router.push('/(tabs)/workouts');
+            }}
           >
             <IconSymbol 
               ios_icon_name="figure.run" 
@@ -139,7 +147,10 @@ export default function HomeScreen() {
 
           <TouchableOpacity 
             style={styles.actionButton}
-            onPress={() => router.push('/(tabs)/progress')}
+            onPress={() => {
+              console.log('User tapped View Progress');
+              router.push('/(tabs)/progress');
+            }}
           >
             <IconSymbol 
               ios_icon_name="chart.bar.fill" 
@@ -148,6 +159,28 @@ export default function HomeScreen() {
               color={colors.success}
             />
             <Text style={styles.actionText}>View Progress</Text>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron-right"
+              size={20}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => {
+              console.log('User tapped AI Content Generator');
+              router.push('/(tabs)/content-generator');
+            }}
+          >
+            <IconSymbol 
+              ios_icon_name="sparkles" 
+              android_material_icon_name="auto-awesome"
+              size={24}
+              color={colors.highlight}
+            />
+            <Text style={styles.actionText}>AI Content Generator</Text>
             <IconSymbol 
               ios_icon_name="chevron.right" 
               android_material_icon_name="chevron-right"
@@ -180,7 +213,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 48,
-    paddingBottom: 140, // Increased from 100 to 140 to accommodate larger tab bar
+    paddingBottom: 140,
   },
   header: {
     paddingHorizontal: 16,
@@ -212,12 +245,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.primary,
     marginTop: 8,
   },
   statLabel: {
     fontSize: 14,
-    color: '#000000',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   macroItem: {

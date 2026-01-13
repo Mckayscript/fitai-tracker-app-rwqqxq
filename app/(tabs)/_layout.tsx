@@ -25,12 +25,6 @@ export default function TabLayout() {
       label: 'Workouts',
     },
     {
-      name: 'content-generator',
-      route: '/(tabs)/content-generator' as any,
-      icon: 'auto-awesome',
-      label: 'AI Content',
-    },
-    {
       name: 'progress',
       route: '/(tabs)/progress' as any,
       icon: 'bar-chart',
@@ -55,9 +49,9 @@ export default function TabLayout() {
         <Tabs.Screen name="(home)" options={{ title: 'Home' }} />
         <Tabs.Screen name="meals" options={{ title: 'Meals' }} />
         <Tabs.Screen name="workouts" options={{ title: 'Workouts' }} />
-        <Tabs.Screen name="content-generator" options={{ title: 'AI Content' }} />
         <Tabs.Screen name="progress" options={{ title: 'Progress' }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+        <Tabs.Screen name="content-generator" options={{ href: null }} />
         <Tabs.Screen name="testing-guide" options={{ href: null }} />
       </Tabs>
     </>
