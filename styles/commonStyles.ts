@@ -6,6 +6,7 @@ export const colors = {
   text: '#212121',
   textSecondary: '#757575',
   primary: '#29ABE2',
+  primaryLight: '#E3F2FD',
   secondary: '#673AB7',
   accent: '#FF4081',
   card: '#FFFFFF',
@@ -13,6 +14,7 @@ export const colors = {
   border: '#E0E0E0',
   success: '#4CAF50',
   error: '#F44336',
+  errorLight: '#FFEBEE',
   warning: '#FF9800',
 };
 
