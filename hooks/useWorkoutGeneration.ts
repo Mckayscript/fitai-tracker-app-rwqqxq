@@ -8,6 +8,7 @@ export type Exercise = {
   reps: string;
   rest: string;
   notes?: string;
+  instructionImageUrl?: string;
 };
 
 export type DaySchedule = {
@@ -27,6 +28,7 @@ export type WorkoutRoutine = {
 
 export type WorkoutResponse = {
   routine: WorkoutRoutine;
+  workoutPlanId: string;
   generatedAt: string;
 };
 
@@ -49,11 +51,11 @@ export function useWorkoutGeneration() {
     daysPerWeek?: number,
     sessionDuration?: number
   ): Promise<WorkoutResponse | null> => {
-    console.log('Generating workout routine for goal:', goal);
+    console.log('Generating workout routine with images for goal:', goal);
     setState({ status: 'loading', data: null, error: null });
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-workout-routine', {
+      const { data, error } = await supabase.functions.invoke('generate-workout-with-images', {
         body: { 
           goal,
           fitnessLevel: fitnessLevel || 'Intermediate',
@@ -69,7 +71,7 @@ export function useWorkoutGeneration() {
       }
 
       const result = data as WorkoutResponse;
-      console.log('Workout routine generated successfully');
+      console.log('Workout routine with images generated successfully');
       setState({ status: 'success', data: result, error: null });
       return result;
     } catch (err: any) {

@@ -8,10 +8,34 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import type { WorkoutRoutine } from '@/hooks/useWorkoutGeneration';
+
+export type Exercise = {
+  name: string;
+  sets: number;
+  reps: string;
+  rest: string;
+  notes?: string;
+  instructionImageUrl?: string;
+};
+
+export type DaySchedule = {
+  day: string;
+  focus: string;
+  exercises: Exercise[];
+};
+
+export type WorkoutRoutine = {
+  goal: string;
+  daysPerWeek: number;
+  sessionDuration: number;
+  weeklySchedule: DaySchedule[];
+  tips: string[];
+  progressionPlan: string;
+};
 
 interface WorkoutRoutineModalProps {
   visible: boolean;
@@ -27,6 +51,7 @@ export function WorkoutRoutineModal({
   onClose,
 }: WorkoutRoutineModalProps) {
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   const toggleDay = (index: number) => {
     setExpandedDay(expandedDay === index ? null : index);
@@ -58,7 +83,10 @@ export function WorkoutRoutineModal({
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.loadingText}>
-                Generating your personalized workout routine...
+                Generating your personalized workout routine with instruction images...
+              </Text>
+              <Text style={styles.loadingSubtext}>
+                This may take a moment as we create custom workout images for you
               </Text>
             </View>
           ) : routine ? (
@@ -143,6 +171,20 @@ export function WorkoutRoutineModal({
                                   💡 {exercise.notes}
                                 </Text>
                               )}
+                              
+                              {/* Instruction Image */}
+                              {exercise.instructionImageUrl && (
+                                <TouchableOpacity
+                                  onPress={() => setExpandedImage(exercise.instructionImageUrl!)}
+                                >
+                                  <Image
+                                    source={{ uri: exercise.instructionImageUrl }}
+                                    style={styles.instructionImage}
+                                    resizeMode="cover"
+                                  />
+                                  <Text style={styles.imageHint}>Tap to enlarge</Text>
+                                </TouchableOpacity>
+                              )}
                             </View>
                           ))}
                         </View>
@@ -199,6 +241,39 @@ export function WorkoutRoutineModal({
           )}
         </View>
       </View>
+
+      {/* Image Zoom Modal */}
+      {expandedImage && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setExpandedImage(null)}
+        >
+          <TouchableOpacity
+            style={styles.imageModalOverlay}
+            activeOpacity={1}
+            onPress={() => setExpandedImage(null)}
+          >
+            <Image
+              source={{ uri: expandedImage }}
+              style={styles.expandedImage}
+              resizeMode="contain"
+            />
+            <TouchableOpacity
+              style={styles.imageCloseButton}
+              onPress={() => setExpandedImage(null)}
+            >
+              <IconSymbol
+                ios_icon_name="xmark.circle.fill"
+                android_material_icon_name="cancel"
+                size={36}
+                color={colors.card}
+              />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </Modal>
   );
 }
@@ -246,6 +321,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  loadingSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   overviewCard: {
     margin: 16,
@@ -320,7 +402,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   exerciseItem: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   exerciseName: {
     fontSize: 16,
@@ -341,6 +423,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.accent,
     marginTop: 6,
+    fontStyle: 'italic',
+  },
+  instructionImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginTop: 12,
+    backgroundColor: colors.background,
+  },
+  imageHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 4,
     fontStyle: 'italic',
   },
   tipsCard: {
@@ -384,5 +480,20 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  imageModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandedImage: {
+    width: '90%',
+    height: '80%',
+  },
+  imageCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
   },
 });
