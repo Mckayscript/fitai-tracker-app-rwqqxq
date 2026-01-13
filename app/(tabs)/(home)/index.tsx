@@ -1,219 +1,276 @@
 
-import { colors, commonStyles } from '@/styles/commonStyles';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { colors, commonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useRouter } from 'expo-router';
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    padding: 20,
-    paddingTop: 60,
-  },
-  greeting: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    padding: 20,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  quickActions: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  actionButton: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  actionIcon: {
-    marginRight: 16,
-  },
-  actionText: {
-    flex: 1,
-  },
-  actionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  actionDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  testingButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    padding: 20,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  testingButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginLeft: 8,
-  },
-});
 
 export default function HomeScreen() {
   const router = useRouter();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
-      <View style={styles.header}>
-        <Text style={styles.greeting}>Welcome to FitAI</Text>
-        <Text style={styles.subtitle}>Track your fitness journey with AI</Text>
-      </View>
-
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>1,850</Text>
-          <Text style={styles.statLabel}>Calories Today</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>3/5</Text>
-          <Text style={styles.statLabel}>Workouts</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>7</Text>
-          <Text style={styles.statLabel}>Day Streak</Text>
-        </View>
-      </View>
-
-      {/* Testing Guide Button */}
-      <TouchableOpacity 
-        style={styles.testingButton}
-        onPress={() => router.push('/(tabs)/testing-guide')}
+    <View style={commonStyles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <IconSymbol 
-          ios_icon_name="info.circle.fill" 
-          android_material_icon_name="info" 
-          size={24} 
-          color="#FFFFFF" 
-        />
-        <Text style={styles.testingButtonText}>How to Test Your App Fully</Text>
-      </TouchableOpacity>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Welcome to FitAI Tracker</Text>
+          <Text style={styles.subGreeting}>Track your fitness journey with AI</Text>
+        </View>
 
-      <View style={styles.quickActions}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        {/* Daily Summary Card */}
+        <View style={commonStyles.card}>
+          <Text style={styles.cardTitle}>Today&apos;s Summary</Text>
+          
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <IconSymbol 
+                ios_icon_name="flame.fill" 
+                android_material_icon_name="local-fire-department"
+                size={32}
+                color={colors.accent}
+              />
+              <Text style={styles.statValue}>0</Text>
+              <Text style={styles.statLabel}>Calories</Text>
+            </View>
 
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => router.push('/(tabs)/meals')}
-        >
-          <View style={styles.actionIcon}>
+            <View style={styles.statItem}>
+              <IconSymbol 
+                ios_icon_name="figure.walk" 
+                android_material_icon_name="directions-walk"
+                size={32}
+                color={colors.primary}
+              />
+              <Text style={styles.statValue}>0</Text>
+              <Text style={styles.statLabel}>Workouts</Text>
+            </View>
+
+            <View style={styles.statItem}>
+              <IconSymbol 
+                ios_icon_name="chart.line.uptrend.xyaxis" 
+                android_material_icon_name="trending-up"
+                size={32}
+                color={colors.success}
+              />
+              <Text style={styles.statValue}>0</Text>
+              <Text style={styles.statLabel}>Streak</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Macros Card */}
+        <View style={commonStyles.card}>
+          <Text style={styles.cardTitle}>Macros Today</Text>
+          
+          <View style={styles.macroItem}>
+            <View style={styles.macroHeader}>
+              <Text style={styles.macroLabel}>Protein</Text>
+              <Text style={styles.macroValue}>0g / 150g</Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: '0%', backgroundColor: colors.accent }]} />
+            </View>
+          </View>
+
+          <View style={styles.macroItem}>
+            <View style={styles.macroHeader}>
+              <Text style={styles.macroLabel}>Carbs</Text>
+              <Text style={styles.macroValue}>0g / 200g</Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: '0%', backgroundColor: colors.primary }]} />
+            </View>
+          </View>
+
+          <View style={styles.macroItem}>
+            <View style={styles.macroHeader}>
+              <Text style={styles.macroLabel}>Fat</Text>
+              <Text style={styles.macroValue}>0g / 65g</Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: '0%', backgroundColor: colors.highlight }]} />
+            </View>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={commonStyles.card}>
+          <Text style={styles.cardTitle}>Quick Actions</Text>
+          
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => router.push('/(tabs)/meals')}
+          >
             <IconSymbol 
               ios_icon_name="camera.fill" 
-              android_material_icon_name="camera" 
-              size={32} 
-              color={colors.primary} 
+              android_material_icon_name="camera-alt"
+              size={24}
+              color={colors.primary}
             />
-          </View>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>Log Meal</Text>
-            <Text style={styles.actionDescription}>Take a photo or enter manually</Text>
-          </View>
-        </TouchableOpacity>
+            <Text style={styles.actionText}>Log Meal with Photo</Text>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron-right"
+              size={20}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => router.push('/(tabs)/workouts')}
-        >
-          <View style={styles.actionIcon}>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => router.push('/(tabs)/workouts')}
+          >
             <IconSymbol 
               ios_icon_name="figure.run" 
-              android_material_icon_name="fitness-center" 
-              size={32} 
-              color={colors.primary} 
+              android_material_icon_name="directions-run"
+              size={24}
+              color={colors.secondary}
             />
-          </View>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>Start Workout</Text>
-            <Text style={styles.actionDescription}>Follow your AI-generated routine</Text>
-          </View>
-        </TouchableOpacity>
+            <Text style={styles.actionText}>Log Workout</Text>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron-right"
+              size={20}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => router.push('/(tabs)/progress')}
-        >
-          <View style={styles.actionIcon}>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => router.push('/(tabs)/progress')}
+          >
             <IconSymbol 
               ios_icon_name="chart.bar.fill" 
-              android_material_icon_name="show-chart" 
-              size={32} 
-              color={colors.primary} 
+              android_material_icon_name="bar-chart"
+              size={24}
+              color={colors.success}
             />
-          </View>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>View Progress</Text>
-            <Text style={styles.actionDescription}>Track your fitness journey</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => router.push('/(tabs)/profile')}
-        >
-          <View style={styles.actionIcon}>
+            <Text style={styles.actionText}>View Progress</Text>
             <IconSymbol 
-              ios_icon_name="person.fill" 
-              android_material_icon_name="person" 
-              size={32} 
-              color={colors.primary} 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron-right"
+              size={20}
+              color={colors.textSecondary}
             />
+          </TouchableOpacity>
+        </View>
+
+        {/* AI Insights Card */}
+        <View style={[commonStyles.card, styles.insightsCard]}>
+          <View style={styles.insightsHeader}>
+            <IconSymbol 
+              ios_icon_name="sparkles" 
+              android_material_icon_name="auto-awesome"
+              size={24}
+              color={colors.highlight}
+            />
+            <Text style={styles.cardTitle}>AI Insights</Text>
           </View>
-          <View style={styles.actionText}>
-            <Text style={styles.actionTitle}>Update Profile</Text>
-            <Text style={styles.actionDescription}>Set your fitness goals</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <Text style={styles.insightText}>
+            Start logging your meals and workouts to get personalized AI insights and recommendations!
+          </Text>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    paddingTop: 48,
+    paddingBottom: 140, // Increased from 100 to 140 to accommodate larger tab bar
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+  },
+  greeting: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  subGreeting: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000000',
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#000000',
+    marginTop: 4,
+  },
+  macroItem: {
+    marginBottom: 16,
+  },
+  macroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  macroLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  macroValue: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: colors.background,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  actionText: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text,
+    marginLeft: 12,
+  },
+  insightsCard: {
+    backgroundColor: colors.secondary,
+  },
+  insightsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  insightText: {
+    fontSize: 14,
+    color: colors.card,
+    lineHeight: 20,
+  },
+});
