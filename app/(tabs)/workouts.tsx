@@ -49,6 +49,8 @@ const fitnessGoals = [
   { name: 'General Fitness', icon: 'favorite', description: 'Overall health' },
 ];
 
+const SUPABASE_URL = 'https://rwklizsezvocgarzprfm.supabase.co';
+
 export default function WorkoutsScreen() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [showManualEntry, setShowManualEntry] = useState(false);
@@ -72,11 +74,8 @@ export default function WorkoutsScreen() {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Get project URL
-      const { data: { project_url } } = await supabase.functions.getProjectUrl();
-      
       // Call Edge Function with date as query parameter
-      const response = await fetch(`${project_url}/functions/v1/get-daily-checklist?date=${today}`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/get-daily-checklist?date=${today}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +84,7 @@ export default function WorkoutsScreen() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error loading checklist:', errorText);
+        console.error('Error loading checklist:', response.status, errorText);
         setLoadingChecklist(false);
         return;
       }
